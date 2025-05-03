@@ -8,10 +8,9 @@ namespace AOIS_Lab1
 {
     public class BinaryNumber
     {
-        private static readonly int[] absoluteZero = { 0, 0, 0, 0, 0, 0, 0, 0 };
         private int[] directBinaryNumber = new int[8];
-        private int[] backBinaryNumber = new int[8];
-        private int[] additionalBinaryNumber = new int[8];
+        private readonly int[] backBinaryNumber = new int[8];
+        private readonly int[] additionalBinaryNumber = new int[8];
         public int[] remainder = new int[5];
         public void ToDirectBinaryNumber(int x)
         {
@@ -79,7 +78,7 @@ namespace AOIS_Lab1
             int x = 0;
             for (int i = 1; i < directBinaryNumber.Length; i++)
             {
-                x = x + directBinaryNumber[i] * (int)Math.Pow(2, directBinaryNumber.Length - 1 - i);
+                x += directBinaryNumber[i] * (int)Math.Pow(2, directBinaryNumber.Length - 1 - i);
             }
             if (directBinaryNumber[0] == 1) x *= -1;
             return x;
@@ -109,7 +108,7 @@ namespace AOIS_Lab1
         }
         public static BinaryNumber operator +(BinaryNumber firstNumber, BinaryNumber secondNumber)
         {
-            BinaryNumber result = new BinaryNumber();
+            BinaryNumber result = new();
             for (int i = 0; i < result.additionalBinaryNumber.Length; i++)
             {
                 result.additionalBinaryNumber[i] = firstNumber.additionalBinaryNumber[i];
@@ -136,18 +135,18 @@ namespace AOIS_Lab1
         }
         public static BinaryNumber operator -(BinaryNumber firstNumber, BinaryNumber secondNumber)
         {
-            BinaryNumber result = new BinaryNumber();
+            BinaryNumber result = new();
             result.ToDirectBinaryNumber(0 - secondNumber.ToDecimalNumber());
-            result = result + firstNumber;
+            result += firstNumber;
             return result;
         }
         public static BinaryNumber operator *(BinaryNumber firstNumber, BinaryNumber secondNumber)
         {
-            BinaryNumber result = new BinaryNumber();
+            BinaryNumber result = new();
             bool isNegative = firstNumber.directBinaryNumber[0] != secondNumber.directBinaryNumber[0];
             firstNumber.directBinaryNumber[0] = 0;
             secondNumber.directBinaryNumber[0] = 0;
-            BinaryNumber shifted = new BinaryNumber();
+            BinaryNumber shifted = new();
             for (int i = firstNumber.directBinaryNumber.Length - 1; i >= 1; i--)
             {
                 if (secondNumber.directBinaryNumber[i] == 1)
@@ -196,7 +195,7 @@ namespace AOIS_Lab1
                 currentRemainder.ToDirectBinaryNumber(currentRemainder.ToDecimalNumber() * 10);
 
                 int digit = 0;
-                BinaryNumber tempRemainder = new BinaryNumber();
+                BinaryNumber tempRemainder = new();
                 for (int j = 0; j < currentRemainder.directBinaryNumber.Length; j++)
                 {
                     tempRemainder.directBinaryNumber[j] = currentRemainder.directBinaryNumber[j];
@@ -216,7 +215,7 @@ namespace AOIS_Lab1
         }
         private static BinaryNumber SubtractBinary(BinaryNumber a, BinaryNumber b)
         {
-            BinaryNumber result = new BinaryNumber();
+            BinaryNumber result = new();
             int borrow = 0;
             for (int i = 7; i >= 0; i--)
             {
@@ -255,8 +254,8 @@ namespace AOIS_Lab1
             dividend.directBinaryNumber[0] = 0;
             divisor.directBinaryNumber[0] = 0;
 
-            BinaryNumber quotient = new BinaryNumber();
-            BinaryNumber remainder = new BinaryNumber();
+            BinaryNumber quotient = new();
+            BinaryNumber remainder = new();
 
             for (int i = 1; i < dividend.directBinaryNumber.Length; i++)
             {
@@ -276,13 +275,15 @@ namespace AOIS_Lab1
             int quotientDecimal = quotient.ToDecimalNumber();
             if (isNegative)
             {
-                quotientDecimal = -quotientDecimal;
+                _ = -quotientDecimal;
             }
             string fractionalPart = ComputeFractionalPart(remainder, divisor);
 
-            BinaryNumber result = new BinaryNumber();
-            result.directBinaryNumber = quotient.directBinaryNumber;
-            for(int i = 0; i < fractionalPart.Length; i++)
+            BinaryNumber result = new()
+            {
+                directBinaryNumber = quotient.directBinaryNumber
+            };
+            for (int i = 0; i < fractionalPart.Length; i++)
             {
                 char temp = fractionalPart[i];
                 result.remainder[i] = Int32.Parse(temp.ToString());

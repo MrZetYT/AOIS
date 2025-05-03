@@ -1,18 +1,18 @@
 ﻿namespace AOIS_Lab1
 {
-    internal class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main()
         {
             int choice = 0;
 
-            BinaryNumber firstNumber = new BinaryNumber();
-            BinaryNumber secondNumber = new BinaryNumber();
-            BinaryNumber result = new BinaryNumber();
+            BinaryNumber firstNumber = new();
+            BinaryNumber secondNumber = new();
+            BinaryNumber result;
 
-            int[] firstFloatNumber = new int[32];
-            int[] secondFloatNumber = new int[32];
-            int[] resultFloat = new int[32];
+            int[] firstFloatNumber;
+            int[] secondFloatNumber;
+            int[] resultFloat;
             while (choice != 3)
             {
                 Console.WriteLine("1. Операции с целыми числами");
@@ -100,7 +100,7 @@
                             }
                             Console.WriteLine(FloatNumbers.ToBinaryString(secondFloatNumber));
                             resultFloat = FloatNumbers.FloatSum(firstFloatNumber, secondFloatNumber);
-                            Console.WriteLine("Результат сложения: "+FloatNumbers.ToDecimalFromFloat(resultFloat));
+                            Console.WriteLine("Результат сложения: " + FloatNumbers.ToDecimalFromFloat(resultFloat));
                             Console.WriteLine(FloatNumbers.ToBinaryString(resultFloat));
                             break;
                         }
