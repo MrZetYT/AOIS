@@ -40,22 +40,6 @@ namespace AOIS_Lab1.Tests
             Assert.That(binaryNumber.ToDecimalNumber(), Is.EqualTo(0));
         }
 
-        [Test]
-        public void ToDirectBinaryNumber_InvalidInput_PrintsErrorMessage()
-        {
-            var binaryNumber = new BinaryNumber();
-
-            var simulatedInput = new StringReader("abc\n128\n127\n");
-            Console.SetIn(simulatedInput);
-
-            var consoleOutput = new StringWriter();
-            Console.SetOut(consoleOutput);
-
-            binaryNumber.ToDirectBinaryNumber(128);
-
-            var output = consoleOutput.ToString();
-            StringAssert.Contains("Неправильный формат", output);
-        }
 
 
         [Test]

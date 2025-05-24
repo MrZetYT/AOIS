@@ -14,19 +14,7 @@ namespace AOIS_Lab1
         public int[] remainder = new int[5];
         public void ToDirectBinaryNumber(int x)
         {
-            while (x < -127 || x > 127)
-            {
-                Console.Write(@"Число слишком большое\маленькое. Введите ещё раз: ");
-                try
-                {
-                    x = Int32.Parse(Console.ReadLine());
-                }
-                catch
-                {
-                    x = 128;
-                    Console.WriteLine("Неправильный формат");
-                }
-            }
+            
             int temp = x;
             for (int i = 0; i < directBinaryNumber.Length; i++)
             {
