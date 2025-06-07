@@ -23,7 +23,6 @@ namespace AOIS_Lab3
                 }
 
                 var truthTable = evaluator.BuildTruthTable(expression, variables);
-                // Вывод таблицы истинности
                 Console.WriteLine("Таблица истинности:");
                 string headers = string.Join(" ", variables) + " | F";
                 Console.WriteLine(headers);
@@ -46,42 +45,34 @@ namespace AOIS_Lab3
                         maxterms.Add(i);
                 }
 
-                // Для СДНФ
                 Console.WriteLine("\nМинимизация СДНФ (SOP):");
 
-                // Расчетный метод
                 Console.WriteLine("\nРасчетный метод:");
                 var sopPrimeImplicants = evaluator.GetPrimeImplicants(minterms, numVariables);
                 Console.WriteLine("Простые импликанты: " + string.Join(", ", sopPrimeImplicants.Select(imp => imp.ToExpression(variables, true))));
                 var minimalSOP = evaluator.GetMinimalExpression(sopPrimeImplicants, minterms, variables, true);
                 Console.WriteLine("Минимизированное выражение: " + minimalSOP);
 
-                // Расчетно-табличный метод
                 Console.WriteLine("\nРасчетно-табличный метод:");
                 evaluator.PrintCoverageTable(sopPrimeImplicants, minterms, variables, true);
                 Console.WriteLine("Минимизированное выражение: " + minimalSOP);
 
-                // Табличный метод (Карта Карно)
                 Console.WriteLine("\nТабличный метод (Карта Карно):");
                 evaluator.DisplayKMap(truthValues, numVariables, true);
                 Console.WriteLine("Минимизированное выражение: " + minimalSOP);
 
-                // Для СКНФ
                 Console.WriteLine("\nМинимизация СКНФ (POS):");
 
-                // Расчетный метод
                 Console.WriteLine("\nРасчетный метод:");
                 var posPrimeImplicants = evaluator.GetPrimeImplicants(maxterms, numVariables);
                 Console.WriteLine("Простые импликаты: " + string.Join(", ", posPrimeImplicants.Select(imp => imp.ToExpression(variables, false))));
                 var minimalPOS = evaluator.GetMinimalExpression(posPrimeImplicants, maxterms, variables, false);
                 Console.WriteLine("Минимизированное выражение: " + minimalPOS);
 
-                // Расчетно-табличный метод
                 Console.WriteLine("\nРасчетно-табличный метод:");
                 evaluator.PrintCoverageTable(posPrimeImplicants, maxterms, variables, false);
                 Console.WriteLine("Минимизированное выражение: " + minimalPOS);
 
-                // Табличный метод (Карта Карно)
                 Console.WriteLine("\nТабличный метод (Карта Карно):");
                 evaluator.DisplayKMap(truthValues.Select(v => !v).ToList(), numVariables, false);
                 Console.WriteLine("Минимизированное выражение: " + minimalPOS);

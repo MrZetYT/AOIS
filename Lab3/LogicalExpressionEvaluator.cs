@@ -188,38 +188,48 @@ namespace AOIS_Lab3
             if (terms.Count == 1 << numVariables)
                 return new List<Implicant> { new Implicant(new string('-', numVariables), terms) };
 
-            List<Implicant> implicants = terms.Select(t => new Implicant(Convert.ToString(t, 2).PadLeft(numVariables, '0'), new List<int> { t })).ToList();
-            List<Implicant> primeImplicants = new List<Implicant>();
-            HashSet<string> usedPatterns = new HashSet<string>();
+            List<Implicant> currentImplicants = terms.Select(t =>
+                new Implicant(Convert.ToString(t, 2).PadLeft(numVariables, '0'), new List<int> { t })).ToList();
 
-            while (implicants.Any())
+            List<Implicant> allPrimeImplicants = new List<Implicant>();
+
+            while (currentImplicants.Any())
             {
-                List<Implicant> nextImplicants = new List<Implicant>();
-                HashSet<string> combinedPatterns = new HashSet<string>();
+                List<Implicant> nextLevelImplicants = new List<Implicant>();
+                HashSet<int> usedIndices = new HashSet<int>();
 
-                for (int i = 0; i < implicants.Count; i++)
+                for (int i = 0; i < currentImplicants.Count; i++)
                 {
-                    for (int j = i + 1; j < implicants.Count; j++)
+                    for (int j = i + 1; j < currentImplicants.Count; j++)
                     {
-                        if (implicants[i].CanCombineWith(implicants[j], out string? combinedPattern))
+                        if (currentImplicants[i].CanCombineWith(currentImplicants[j], out string? combinedPattern))
                         {
-                            if (!combinedPatterns.Contains(combinedPattern))
+                            var combinedTerms = currentImplicants[i].CoveredTerms.Union(currentImplicants[j].CoveredTerms).ToList();
+                            var newImplicant = new Implicant(combinedPattern, combinedTerms);
+
+                            if (!nextLevelImplicants.Any(imp => imp.Pattern == combinedPattern))
                             {
-                                combinedPatterns.Add(combinedPattern);
-                                List<int> covered = implicants[i].CoveredTerms.Union(implicants[j].CoveredTerms).ToList();
-                                nextImplicants.Add(new Implicant(combinedPattern, covered));
+                                nextLevelImplicants.Add(newImplicant);
                             }
-                            usedPatterns.Add(implicants[i].Pattern);
-                            usedPatterns.Add(implicants[j].Pattern);
+
+                            usedIndices.Add(i);
+                            usedIndices.Add(j);
                         }
                     }
                 }
 
-                primeImplicants.AddRange(implicants.Where(imp => !usedPatterns.Contains(imp.Pattern)));
-                implicants = nextImplicants;
+                for (int i = 0; i < currentImplicants.Count; i++)
+                {
+                    if (!usedIndices.Contains(i))
+                    {
+                        allPrimeImplicants.Add(currentImplicants[i]);
+                    }
+                }
+
+                currentImplicants = nextLevelImplicants;
             }
 
-            return primeImplicants;
+            return allPrimeImplicants;
         }
 
         public string GetMinimalExpression(List<Implicant> primeImplicants, List<int> terms, List<string> variables, bool isSOP)
@@ -229,49 +239,57 @@ namespace AOIS_Lab3
             if (terms.Count == 1 << variables.Count)
                 return isSOP ? "1" : "0";
 
+            if (!primeImplicants.Any())
+                return isSOP ? "0" : "1";
+
             List<Implicant> selectedImplicants = new List<Implicant>();
             HashSet<int> coveredTerms = new HashSet<int>();
 
-            Dictionary<int, List<Implicant>> termCoverage = new Dictionary<int, List<Implicant>>();
             foreach (var term in terms)
             {
-                termCoverage[term] = primeImplicants.Where(imp => imp.CoveredTerms.Contains(term)).ToList();
-            }
-
-            foreach (var kvp in termCoverage)
-            {
-                if (kvp.Value.Count == 1)
+                var coveringImplicants = primeImplicants.Where(imp => imp.CoveredTerms.Contains(term)).ToList();
+                if (coveringImplicants.Count == 1)
                 {
-                    var essential = kvp.Value[0];
+                    var essential = coveringImplicants[0];
                     if (!selectedImplicants.Contains(essential))
                     {
                         selectedImplicants.Add(essential);
-                        coveredTerms.UnionWith(essential.CoveredTerms);
+                        foreach (var coveredTerm in essential.CoveredTerms.Where(t => terms.Contains(t)))
+                        {
+                            coveredTerms.Add(coveredTerm);
+                        }
                     }
                 }
             }
 
             while (coveredTerms.Count < terms.Count)
             {
-                var remainingTerms = terms.Except(coveredTerms).ToList();
+                var remainingTerms = terms.Where(t => !coveredTerms.Contains(t)).ToList();
                 if (!remainingTerms.Any())
                     break;
 
                 var bestImplicant = primeImplicants
                     .Where(imp => !selectedImplicants.Contains(imp))
-                    .OrderByDescending(imp => imp.CoveredTerms.Intersect(remainingTerms).Count())
+                    .Where(imp => imp.CoveredTerms.Any(t => remainingTerms.Contains(t)))
+                    .OrderByDescending(imp => imp.CoveredTerms.Count(t => remainingTerms.Contains(t)))
                     .FirstOrDefault();
 
                 if (bestImplicant != null)
                 {
                     selectedImplicants.Add(bestImplicant);
-                    coveredTerms.UnionWith(bestImplicant.CoveredTerms);
+                    foreach (var coveredTerm in bestImplicant.CoveredTerms.Where(t => terms.Contains(t)))
+                    {
+                        coveredTerms.Add(coveredTerm);
+                    }
                 }
                 else
                 {
                     break;
                 }
             }
+
+            if (!selectedImplicants.Any())
+                return isSOP ? "0" : "1";
 
             List<string> expressionTerms = selectedImplicants.Select(imp => imp.ToExpression(variables, isSOP)).ToList();
             string joinOp = isSOP ? " | " : " & ";
@@ -290,8 +308,8 @@ namespace AOIS_Lab3
             Console.WriteLine("------------------|-------------------");
             foreach (var imp in primeImplicants)
             {
-                string covered = string.Join(", ", imp.CoveredTerms.Intersect(terms));
-                Console.WriteLine($"{imp.ToExpression(variables, isSOP)} | {covered}");
+                string covered = string.Join(", ", imp.CoveredTerms.Where(t => terms.Contains(t)));
+                Console.WriteLine($"{imp.ToExpression(variables, isSOP),-17} | {covered}");
             }
         }
 
@@ -303,73 +321,69 @@ namespace AOIS_Lab3
                 return;
             }
 
-            string[] gray2 = { "00", "01", "11", "10" };
-
             if (numVariables == 2)
             {
                 Console.WriteLine($"Карта Карно для 2 переменных ({(forSOP ? "СДНФ" : "СКНФ")}):");
-                Console.WriteLine("  b | 0 | 1");
-                Console.WriteLine("a\\");
-                Console.WriteLine("0 | " + (forSOP == truthTable[0] ? "1" : "0") + " | " + (forSOP == truthTable[1] ? "1" : "0"));
-                Console.WriteLine("1 | " + (forSOP == truthTable[2] ? "1" : "0") + " | " + (forSOP == truthTable[3] ? "1" : "0"));
+                Console.WriteLine("    b");
+                Console.WriteLine("a\\  | 0 | 1");
+                Console.WriteLine("----+---+---");
+                Console.WriteLine($"0   | {(forSOP == truthTable[0] ? "1" : "0")} | {(forSOP == truthTable[1] ? "1" : "0")}");
+                Console.WriteLine($"1   | {(forSOP == truthTable[2] ? "1" : "0")} | {(forSOP == truthTable[3] ? "1" : "0")}");
             }
             else if (numVariables == 3)
             {
                 Console.WriteLine($"Карта Карно для 3 переменных ({(forSOP ? "СДНФ" : "СКНФ")}):");
-                Console.WriteLine("  ab | 00 | 01 | 11 | 10");
-                Console.WriteLine("c\\");
-                Console.WriteLine("0 | " + (forSOP == truthTable[0] ? "1" : "0") + " | " + (forSOP == truthTable[2] ? "1" : "0") + " | " + (forSOP == truthTable[6] ? "1" : "0") + " | " + (forSOP == truthTable[4] ? "1" : "0"));
-                Console.WriteLine("1 | " + (forSOP == truthTable[1] ? "1" : "0") + " | " + (forSOP == truthTable[3] ? "1" : "0") + " | " + (forSOP == truthTable[7] ? "1" : "0") + " | " + (forSOP == truthTable[5] ? "1" : "0"));
+                Console.WriteLine("      bc");
+                Console.WriteLine("a\\    | 00 | 01 | 11 | 10");
+                Console.WriteLine("------+----+----+----+----");
+                Console.WriteLine($"0     | {(forSOP == truthTable[0] ? "1" : "0")}  | {(forSOP == truthTable[1] ? "1" : "0")}  | {(forSOP == truthTable[3] ? "1" : "0")}  | {(forSOP == truthTable[2] ? "1" : "0")}");
+                Console.WriteLine($"1     | {(forSOP == truthTable[4] ? "1" : "0")}  | {(forSOP == truthTable[5] ? "1" : "0")}  | {(forSOP == truthTable[7] ? "1" : "0")}  | {(forSOP == truthTable[6] ? "1" : "0")}");
             }
             else if (numVariables == 4)
             {
                 Console.WriteLine($"Карта Карно для 4 переменных ({(forSOP ? "СДНФ" : "СКНФ")}):");
-                Console.WriteLine("cd\\ab | 00 | 01 | 11 | 10");
-                for (int r = 0; r < 4; r++)
-                {
-                    string rowLabel = gray2[r];
-                    Console.Write(rowLabel + " | ");
-                    for (int c = 0; c < 4; c++)
-                    {
-                        int rowBinary = r ^ r >> 1;
-                        int colBinary = c ^ c >> 1;
-                        int index = rowBinary << 2 | colBinary;
-                        string value = forSOP == truthTable[index] ? "1" : "0";
-                        Console.Write(value + " | ");
-                    }
-                    Console.WriteLine();
-                }
+                Display4VarKMap(truthTable, forSOP);
             }
             else if (numVariables == 5)
             {
                 Console.WriteLine($"Карта Карно для 5 переменных, e=0 ({(forSOP ? "СДНФ" : "СКНФ")}):");
-                List<bool> subTruthTable_e0 = Enumerable.Range(0, 32).Where(i => (i & 1) == 0).Select(i => truthTable[i]).ToList();
+                var subTruthTable_e0 = new List<bool>();
+                for (int i = 0; i < 16; i++)
+                {
+                    subTruthTable_e0.Add(truthTable[i]);
+                }
                 Display4VarKMap(subTruthTable_e0, forSOP);
-                Console.WriteLine($"Карта Карно для 5 переменных, e=1 ({(forSOP ? "СДНФ" : "СКНФ")}):");
-                List<bool> subTruthTable_e1 = Enumerable.Range(0, 32).Where(i => (i & 1) == 1).Select(i => truthTable[i]).ToList();
+
+                Console.WriteLine($"\nКарта Карно для 5 переменных, e=1 ({(forSOP ? "СДНФ" : "СКНФ")}):");
+                var subTruthTable_e1 = new List<bool>();
+                for (int i = 16; i < 32; i++)
+                {
+                    subTruthTable_e1.Add(truthTable[i]);
+                }
                 Display4VarKMap(subTruthTable_e1, forSOP);
             }
         }
 
         private void Display4VarKMap(List<bool> values, bool forSOP)
         {
-            string[] gray = { "00", "01", "11", "10" };
-            Console.WriteLine("cd\\ab | 00 | 01 | 11 | 10");
+            Console.WriteLine("        cd");
+            Console.WriteLine("ab\\     | 00 | 01 | 11 | 10");
+            Console.WriteLine("--------+----+----+----+----");
+
+            int[] grayOrder = { 0, 1, 3, 2 };
+            string[] grayLabels = { "00", "01", "11", "10" };
+
             for (int r = 0; r < 4; r++)
             {
-                string rowLabel = gray[r];
-                Console.Write(rowLabel + " | ");
+                Console.Write($"{grayLabels[r]}      |");
                 for (int c = 0; c < 4; c++)
                 {
-                    int rowBinary = r ^ r >> 1;
-                    int colBinary = c ^ c >> 1;
-                    int index = rowBinary << 2 | colBinary;
+                    int index = grayOrder[r] * 4 + grayOrder[c];
                     string value = forSOP == values[index] ? "1" : "0";
-                    Console.Write(value + " | ");
+                    Console.Write($" {value}  |");
                 }
                 Console.WriteLine();
             }
         }
     }
-
 }

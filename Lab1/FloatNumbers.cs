@@ -128,6 +128,7 @@ namespace AOIS_Lab1
 
             return sign == 1 ? -result : result;
         }
+
         public static int[] FloatSum(int[] firstNumber, int[] secondNumber)
         {
             if (firstNumber.Length != 32 || secondNumber.Length != 32)
@@ -135,23 +136,24 @@ namespace AOIS_Lab1
 
             int[] result = new int[32];
 
+            bool firstIsZero = true, secondIsZero = true;
+            for (int i = 0; i < 32; i++)
+            {
+                if (firstNumber[i] != 0) firstIsZero = false;
+                if (secondNumber[i] != 0) secondIsZero = false;
+            }
+            if (firstIsZero) return (int[])secondNumber.Clone();
+            if (secondIsZero) return (int[])firstNumber.Clone();
+
             int signFirst = firstNumber[0];
             int signSecond = secondNumber[0];
             int expFirst = 0, expSecond = 0;
+
             for (int i = 0; i < 8; i++)
             {
                 expFirst = expFirst << 1 | firstNumber[i + 1];
                 expSecond = expSecond << 1 | secondNumber[i + 1];
             }
-            int[] mantFirst = new int[24];
-            int[] mantSecond = new int[24];
-            for (int i = 0; i < 23; i++)
-            {
-                mantFirst[i + 1] = firstNumber[i + 9];
-                mantSecond[i + 1] = secondNumber[i + 9];
-            }
-            if (expFirst != 0) mantFirst[0] = 1;
-            if (expSecond != 0) mantSecond[0] = 1;
 
             if (expFirst == 0xFF || expSecond == 0xFF)
             {
@@ -163,18 +165,29 @@ namespace AOIS_Lab1
                         if (firstNumber[i + 9] != 0) isNaNFirst = true;
                         if (secondNumber[i + 9] != 0) isNaNSecond = true;
                     }
-                    if (isNaNFirst || isNaNSecond)
+                    if (isNaNFirst || isNaNSecond || signFirst != signSecond)
                     {
                         result[0] = 0;
-                        result[1] = 1;
-                        for (int i = 2; i < 9; i++) result[i] = 1;
+                        for (int i = 1; i < 9; i++) result[i] = 1;
                         result[9] = 1;
                         return result;
                     }
-                    return firstNumber;
+                    return (int[])firstNumber.Clone();
                 }
-                return expFirst == 0xFF ? firstNumber : secondNumber;
+                return expFirst == 0xFF ? (int[])firstNumber.Clone() : (int[])secondNumber.Clone();
             }
+
+            int[] mantFirst = new int[24];
+            int[] mantSecond = new int[24];
+
+            for (int i = 0; i < 23; i++)
+            {
+                mantFirst[i + 1] = firstNumber[i + 9];
+                mantSecond[i + 1] = secondNumber[i + 9];
+            }
+
+            if (expFirst != 0) mantFirst[0] = 1;
+            if (expSecond != 0) mantSecond[0] = 1;
 
             int maxExp = Math.Max(expFirst, expSecond);
             int shiftFirst = maxExp - expFirst;
@@ -195,51 +208,59 @@ namespace AOIS_Lab1
                     mantSecond[i] = 0;
             }
 
-            int[] resultMant = new int[24];
-            int temp = 0;
+            int[] resultMant = new int[25];
+            int signResult = signFirst;
+            int finalExp = maxExp;
+
             if (signFirst == signSecond)
             {
+                int carry = 0;
                 for (int i = 23; i >= 0; i--)
                 {
-                    int sum = mantFirst[i] + mantSecond[i] + temp;
-                    resultMant[i] = sum & 1;
-                    temp = sum >> 1;
+                    int sum = mantFirst[i] + mantSecond[i] + carry;
+                    resultMant[i + 1] = sum & 1;
+                    carry = sum >> 1;
                 }
+                resultMant[0] = carry;
             }
             else
             {
-                int[] larger = mantFirst, smaller = mantSecond;
-                int signResult = signFirst;
+                bool firstIsLarger = false;
                 for (int i = 0; i < 24; i++)
                 {
-                    if (mantFirst[i] > mantSecond[i]) break;
+                    if (mantFirst[i] > mantSecond[i])
+                    {
+                        firstIsLarger = true;
+                        break;
+                    }
                     if (mantSecond[i] > mantFirst[i])
                     {
-                        larger = mantSecond;
-                        smaller = mantFirst;
-                        signResult = signSecond;
+                        firstIsLarger = false;
                         break;
                     }
                 }
+
+                int[] larger = firstIsLarger ? mantFirst : mantSecond;
+                int[] smaller = firstIsLarger ? mantSecond : mantFirst;
+                signResult = firstIsLarger ? signFirst : signSecond;
+
+                int borrow = 0;
                 for (int i = 23; i >= 0; i--)
                 {
-                    int diff = larger[i] - smaller[i] - temp;
+                    int diff = larger[i] - smaller[i] - borrow;
                     if (diff < 0)
                     {
                         diff += 2;
-                        temp = 1;
+                        borrow = 1;
                     }
                     else
-                        temp = 0;
-                    resultMant[i] = diff;
+                        borrow = 0;
+                    resultMant[i + 1] = diff;
                 }
-                signFirst = signResult;
             }
 
-            int finalExp = maxExp;
-            int shift = 0;
             bool isZero = true;
-            for (int i = 0; i < 24; i++)
+            for (int i = 0; i < 25; i++)
                 if (resultMant[i] != 0)
                 {
                     isZero = false;
@@ -248,46 +269,45 @@ namespace AOIS_Lab1
             if (isZero)
                 return new int[32];
 
-            if (temp == 1 || resultMant[0] == 1)
+            if (resultMant[0] == 1)
             {
-                for (int i = 23; i > 0; i--)
+                for (int i = 24; i > 0; i--)
                     resultMant[i] = resultMant[i - 1];
-                resultMant[0] = temp;
                 finalExp++;
             }
             else
             {
-                while (resultMant[0] == 0 && finalExp > 0)
+                while (resultMant[1] == 0 && finalExp > 0)
                 {
-                    for (int i = 0; i < 23; i++)
+                    for (int i = 1; i < 24; i++)
                         resultMant[i] = resultMant[i + 1];
-                    resultMant[23] = 0;
+                    resultMant[24] = 0;
                     finalExp--;
-                    shift--;
                 }
             }
 
             if (finalExp >= 0xFF)
             {
-                result[0] = signFirst;
+                result[0] = signResult;
                 for (int i = 1; i < 9; i++) result[i] = 1;
                 return result;
             }
             if (finalExp <= 0)
             {
-                result[0] = signFirst;
+                result[0] = signResult;
                 return result;
             }
 
-            result[0] = signFirst;
-            int tempExp = finalExp;
-            for (int i = 8; i >= 1; i--)
+            result[0] = signResult;
+
+            for (int i = 7; i >= 0; i--)
             {
-                result[i] = tempExp & 1;
-                tempExp >>= 1;
+                result[i + 1] = finalExp & 1;
+                finalExp >>= 1;
             }
+
             for (int i = 0; i < 23; i++)
-                result[i + 9] = resultMant[i + 1];
+                result[i + 9] = resultMant[i + 2];
 
             return result;
         }

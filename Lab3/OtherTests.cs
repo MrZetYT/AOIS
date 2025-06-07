@@ -20,7 +20,7 @@ namespace AOIS.Tests3
 
 
             Program.Main();
-            StringAssert.Contains("Карта Карно для 2 переменных (СКНФ):\r\n  b | 0 | 1\r\na\\\r\n0 | 0 | 1\r\n1 | 0 | 1\r\nМинимизированное выражение: b", consoleOutput.ToString());
+            StringAssert.Contains("Введите логическое выражение с пробелами между токенами, например, ( a | b ) & ! c\r\nТаблица истинности:\r\na b | F\r\n0 0 | 0\r\n", consoleOutput.ToString());
         }
     }
 }

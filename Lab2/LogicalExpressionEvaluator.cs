@@ -244,10 +244,10 @@ namespace AOIS_Lab2
             return indices;
         }
 
-        public (int index, string binary) GetIndexForm(List<(Dictionary<string, bool>, bool)> truthTable)
+        public (uint index, string binary) GetIndexForm(List<(Dictionary<string, bool>, bool)> truthTable)
         {
             string binary = string.Join("", truthTable.Select(row => row.Item2 ? "1" : "0"));
-            int index = Convert.ToInt32(binary, 2);
+            uint index = Convert.ToUInt32(binary, 2);
             return (index, binary);
         }
     }

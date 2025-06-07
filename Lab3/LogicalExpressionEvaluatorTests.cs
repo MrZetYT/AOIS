@@ -355,7 +355,7 @@ namespace AOIS.Tests3
             string posResult = evaluator.GetMinimalExpression(primeImplicants, terms, variables, false);
 
             Assert.That(sopResult, Is.EqualTo("a & !b"));
-            Assert.That(posResult, Is.EqualTo("!a | b"));
+            Assert.That(posResult, Is.EqualTo("( !a | b )"));
         }
 
         [Test]

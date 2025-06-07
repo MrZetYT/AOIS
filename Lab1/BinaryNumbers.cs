@@ -14,7 +14,7 @@ namespace AOIS_Lab1
         public int[] remainder = new int[5];
         public void ToDirectBinaryNumber(int x)
         {
-            
+
             int temp = x;
             for (int i = 0; i < directBinaryNumber.Length; i++)
             {
@@ -168,39 +168,50 @@ namespace AOIS_Lab1
             }
             return 0;
         }
-        private static string ComputeFractionalPart(BinaryNumber remainder, BinaryNumber divisor)
+        private static void ComputeFractionalPart(BinaryNumber remainder, BinaryNumber divisor, int[] fractionalResult)
         {
             if (remainder.ToDecimalNumber() == 0)
             {
-                return "00000";
+                for (int i = 0; i < 5; i++)
+                {
+                    fractionalResult[i] = 0;
+                }
+                return;
             }
 
-            int[] decimalDigits = new int[5];
-            BinaryNumber currentRemainder = remainder;
+            BinaryNumber currentRemainder = new();
+            for (int j = 0; j < remainder.directBinaryNumber.Length; j++)
+            {
+                currentRemainder.directBinaryNumber[j] = remainder.directBinaryNumber[j];
+            }
 
             for (int i = 0; i < 5; i++)
             {
-                currentRemainder.ToDirectBinaryNumber(currentRemainder.ToDecimalNumber() * 10);
+                currentRemainder.directBinaryNumber = ShiftLeft(currentRemainder.directBinaryNumber);
 
-                int digit = 0;
-                BinaryNumber tempRemainder = new();
-                for (int j = 0; j < currentRemainder.directBinaryNumber.Length; j++)
+                if (CompareBinary(currentRemainder.directBinaryNumber, divisor.directBinaryNumber) >= 0)
                 {
-                    tempRemainder.directBinaryNumber[j] = currentRemainder.directBinaryNumber[j];
+                    currentRemainder = SubtractBinary(currentRemainder, divisor);
+                    fractionalResult[i] = 1;
                 }
-
-                while (CompareBinary(tempRemainder.directBinaryNumber, divisor.directBinaryNumber) >= 0)
+                else
                 {
-                    tempRemainder = SubtractBinary(tempRemainder, divisor);
-                    digit++;
+                    fractionalResult[i] = 0;
                 }
-
-                decimalDigits[i] = digit;
-                currentRemainder = tempRemainder;
             }
-
-            return string.Join("", decimalDigits);
         }
+
+        private static int[] ShiftLeft(int[] array)
+        {
+            int[] result = new int[array.Length];
+            for (int i = 0; i < array.Length - 1; i++)
+            {
+                result[i] = array[i + 1];
+            }
+            result[array.Length - 1] = 0;
+            return result;
+        }
+
         private static BinaryNumber SubtractBinary(BinaryNumber a, BinaryNumber b)
         {
             BinaryNumber result = new();
@@ -260,34 +271,30 @@ namespace AOIS_Lab1
                     quotient.directBinaryNumber[i] = 0;
                 }
             }
-            int quotientDecimal = quotient.ToDecimalNumber();
+
+            ComputeFractionalPart(remainder, divisor, quotient.remainder);
+
             if (isNegative)
             {
-                _ = -quotientDecimal;
+                quotient.directBinaryNumber[0] = 1;
             }
-            string fractionalPart = ComputeFractionalPart(remainder, divisor);
-
-            BinaryNumber result = new()
+            else
             {
-                directBinaryNumber = quotient.directBinaryNumber
-            };
-            for (int i = 0; i < fractionalPart.Length; i++)
-            {
-                char temp = fractionalPart[i];
-                result.remainder[i] = Int32.Parse(temp.ToString());
+                quotient.directBinaryNumber[0] = 0;
             }
-            result.ToBackBinaryNumber(result.ToDecimalNumber());
-            result.ToAdditionalBinaryNumber(result.ToDecimalNumber());
 
-            return result;
+            quotient.ToBackBinaryNumber(quotient.ToDecimalNumber());
+            quotient.ToAdditionalBinaryNumber(quotient.ToDecimalNumber());
+
+            return quotient;
         }
         public void Show()
         {
-            Console.Write("Десятичное число: "+ this.ToDecimalNumber()+"\n");
+            Console.Write("Десятичное число: " + this.ToDecimalNumber() + "\n");
             Console.Write("Прямой код: ");
-            for(int i = 0; i < directBinaryNumber.Length; i++)
+            for (int i = 0; i < directBinaryNumber.Length; i++)
             {
-                Console.Write(directBinaryNumber[i]+" ");
+                Console.Write(directBinaryNumber[i] + " ");
             }
             Console.Write("\nОбратный код: ");
             for (int i = 0; i < backBinaryNumber.Length; i++)

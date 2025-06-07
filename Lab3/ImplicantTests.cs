@@ -121,7 +121,7 @@ namespace AOIS.Tests3
 
             string expression = implicant.ToExpression(variables, false);
 
-            Assert.That(expression, Is.EqualTo("!a | b"));
+            Assert.That(expression, Is.EqualTo("( !a | b )"));
         }
 
         [Test]
